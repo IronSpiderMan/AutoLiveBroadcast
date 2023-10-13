@@ -5,15 +5,16 @@ import sqlite3
 
 
 class BilibiliLiveStreamSpider:
-    def __init__(self, room_id):
+    def __init__(self, room_id, comments_queue):
         self.room_id = room_id
         self.room_url = "https://live.bilibili.com/" + room_id
         self.comments_list = set()
+        self.comments_queue = comments_queue
         self.connection, self.cursor = self.init_db()
         self.driver = self.connect_browser()
 
     def init_db(self):
-        connection = sqlite3.connect(f"{self.room_id}.db")
+        connection = sqlite3.connect(f"comments/{self.room_id}.db")
         cursor = connection.cursor()
         try:
             self.cursor.execute("CREATE TABLE comments(nickname, comment)")
@@ -47,7 +48,8 @@ class BilibiliLiveStreamSpider:
                 ).text.strip()
                 if (nickname, content) not in self.comments_list:
                     self.comments_list.add((nickname, content))
-                    print("%s 来了新评论：%s" % (nickname, content))
+                    # print("%s 来了新评论：%s" % (nickname, content))
+                    self.comments_queue.put((nickname, content))
                     self.cursor.execute("insert into comments values (?, ?)", (nickname, content))
                     self.connection.commit()
             except Exception as e:
