@@ -1,4 +1,3 @@
-import asyncio
 import queue
 import threading
 from functools import partial
@@ -24,17 +23,15 @@ class LiveStream:
             if not comments_queue.empty():
                 nickname, comment = comments_queue.get()
                 response, _ = self.digital_human.reply(comment)
+                print(nickname, comment, response)
             else:
-                response = self.digital_human.talk()
-            fname = asyncio.run(self.digital_human.tts(response))
-            mixer.music.load(fname)
-            mixer.music.play()
+                self.digital_human.talk()
 
 
 def main():
     glm = ChatGLM()
-    digital_human = DigitalHuman(glm)
-    spider = BilibiliLiveStreamSpider('22969536', comments_queue)
+    digital_human = DigitalHuman(glm, 'little-prince')
+    spider = BilibiliLiveStreamSpider('1209', comments_queue)
     live_stream = LiveStream(digital_human, spider)
     live_stream.start()
 
