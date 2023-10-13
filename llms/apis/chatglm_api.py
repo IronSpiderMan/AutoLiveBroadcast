@@ -50,8 +50,8 @@ async def create_item(request: Request):
 
 
 if __name__ == '__main__':
-    model_path = "E:/models/ChatGLM2-6B"
-    # model_path = "E:/models/ChatGLM2-6B-int4"
+    # model_path = "E:/models/ChatGLM2-6B"
+    model_path = "E:/models/ChatGLM2-6B-int4"
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     model = AutoModel.from_pretrained(model_path, trust_remote_code=True).quantize(4).half().cuda()
     model.eval()

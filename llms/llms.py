@@ -12,7 +12,7 @@ class ChatGLM(BaseLLM):
 
     def chat(self, prompt, history=None):
         payload = {
-            "prompt": prompt, "history": list(history)
+            "prompt": prompt, "history": [] if not history else history
         }
         headers = {"Content-Type": "application/json"}
         resp = requests.post(

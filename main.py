@@ -1,50 +1,34 @@
+import asyncio
 import queue
 import threading
-import time
 from functools import partial
 
+from pygame import mixer
 from llms.llms import ChatGLM
 from digital_human import DigitalHuman
 from comments.bilibili_spider import BilibiliLiveStreamSpider
 
 comments_queue = queue.Queue()
-
-
-class GrabThread(threading.Thread):
-
-    def __init__(self, func, args=()):
-        super(GrabThread, self).__init__()
-        self.func = func
-        self.args = args
-        self.result = None
-
-    def run(self):
-
-        """run func registry by sub-class"""
-        self.result = self.func(*self.args)
-
-    def get_result(self):
-        try:
-            return self.result
-        except Exception as e:
-            return str(e)
+mixer.init()
 
 
 class LiveStream:
-    def __init__(self, digital_human, spider: BilibiliLiveStreamSpider):
+    def __init__(self, digital_human: DigitalHuman, spider: BilibiliLiveStreamSpider):
         self.digital_human = digital_human
         self.spider = spider
 
     def start(self):
         spider_thread = threading.Thread(target=partial(self.spider.run))
         spider_thread.start()
-        print("111")
         while True:
             if not comments_queue.empty():
-                comment = comments_queue.get()
-                print(comment)
-            print("...")
-            time.sleep(3)
+                nickname, comment = comments_queue.get()
+                response, _ = self.digital_human.reply(comment)
+            else:
+                response = self.digital_human.talk()
+            fname = asyncio.run(self.digital_human.tts(response))
+            mixer.music.load(fname)
+            mixer.music.play()
 
 
 def main():
