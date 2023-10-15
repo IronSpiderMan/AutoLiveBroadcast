@@ -5,7 +5,7 @@ from functools import partial
 from pygame import mixer
 from llms.llms import ChatGLM
 from digital_human import DigitalHuman
-from comments.bilibili_spider import BilibiliLiveStreamSpider
+from comment_spider.bilibili_spider import BilibiliLiveStreamSpider
 
 comments_queue = queue.Queue()
 mixer.init()
@@ -31,7 +31,7 @@ class LiveStream:
 def main():
     glm = ChatGLM()
     digital_human = DigitalHuman(glm, 'little-prince')
-    spider = BilibiliLiveStreamSpider('1209', comments_queue)
+    spider = BilibiliLiveStreamSpider('31063149', comments_queue)
     live_stream = LiveStream(digital_human, spider)
     live_stream.start()
 

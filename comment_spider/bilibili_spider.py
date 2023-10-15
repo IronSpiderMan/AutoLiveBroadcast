@@ -15,10 +15,10 @@ class BilibiliLiveStreamSpider:
         self.driver = self.connect_browser()
 
     def init_db(self):
-        connection = sqlite3.connect(f"comments/{self.room_id}.db")
+        connection = sqlite3.connect(f"comment_spider/{self.room_id}.db")
         cursor = connection.cursor()
         try:
-            self.cursor.execute("CREATE TABLE comments(nickname, comment)")
+            self.cursor.execute("CREATE TABLE comment_spider(nickname, comment)")
         except Exception as e:
             pass
         return connection, cursor
@@ -51,7 +51,7 @@ class BilibiliLiveStreamSpider:
                     self.comments_list.add((nickname, content))
                     # print("%s 来了新评论：%s" % (nickname, content))
                     self.comments_queue.put((nickname, content))
-                    self.cursor.execute("insert into comments values (?, ?)", (nickname, content))
+                    self.cursor.execute("insert into comment_spider values (?, ?)", (nickname, content))
                     self.connection.commit()
             except Exception as e:
                 pass

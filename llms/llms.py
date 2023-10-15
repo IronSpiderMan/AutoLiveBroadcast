@@ -16,6 +16,7 @@ class ChatGLM(BaseLLM):
         }
         headers = {"Content-Type": "application/json"}
         resp = requests.post(
+
             url=self.url,
             json=payload,
             headers=headers
