@@ -5,7 +5,8 @@ from functools import partial
 from pygame import mixer
 from llms.llms import ChatGLM
 from digital_human import DigitalHuman
-from comment_spider.bilibili_spider import BilibiliLiveStreamSpider
+# from comment_spider.bilibili_spider import BilibiliLiveStreamSpider
+from comment_spider.spiders import BilibiliLiveStreamSpider
 
 comments_queue = queue.Queue()
 mixer.init()
