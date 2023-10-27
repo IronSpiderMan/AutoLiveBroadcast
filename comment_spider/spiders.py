@@ -1,5 +1,5 @@
+import random
 import time
-import traceback
 from queue import Queue
 
 from selenium.webdriver.chrome.options import Options
@@ -33,7 +33,7 @@ class BaseLiveStreamSpider:
         try:
             cursor.execute("CREATE TABLE comment_spider(nickname, comment)")
         except Exception as e:
-            print(traceback.print_exc())
+            # print(traceback.print_exc())
             pass
         return connection, cursor
 
@@ -113,7 +113,7 @@ class DouyinLiveStreamSpider(BaseLiveStreamSpider):
                     self.cursor.execute("insert into comment_spider values (?, ?)", (nickname, content))
                     self.connection.commit()
             except Exception as e:
-                traceback.print_exc()
+                # traceback.print_exc()
                 pass
 
 

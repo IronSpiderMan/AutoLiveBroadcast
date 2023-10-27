@@ -1,9 +1,11 @@
 import asyncio
 import os
+import random
 import time
 import platform
 
 from pygame import mixer
+from tqdm import tqdm
 import edge_tts
 import tempfile
 from llms.llms import BaseLLM, ChatGLM
@@ -22,18 +24,20 @@ class DigitalHuman:
             script_path: str,
             persis_path='vector_store',
             embedding_model_name="shibing624/text2vec-base-chinese",
-            qa_collection_name="qa_pairs"
+            qa_collection_name="qa_pairs",
+            speech_path="resources/speeches"
     ):
         self.llm = llm
         self.speech_files = []
-        self.prepare_speeches(script_path)
         self.answering_flag = False
         self.current_pos = 0
-        self.current_file = self.speech_files[0]
         self.qa_collection_name = qa_collection_name
+        self.speech_path = speech_path
+        self.prepare_speeches(script_path)
+        self.current_file = self.speech_files[0]
         self.qa_datasource = ChromaDatasource(persis_path, embedding_model_name)
 
-    def prepare_speeches(self, script_path, path_type="audio"):
+    def prepare_speeches(self, script_path, path_type="script"):
         """
         准备需要朗读的脚本文件，或者音频目录。
         :param script_path: 脚本文件路径或者音频目录
@@ -43,10 +47,20 @@ class DigitalHuman:
         if path_type == "audio":
             self.speech_files = [os.path.join(script_path, file) for file in os.listdir(script_path)]
         else:
+            if os.listdir(self.speech_path):
+                self.speech_files = [
+                    os.path.join(self.speech_path, file)
+                    for file in os.listdir(self.speech_path)
+                ]
+                self.speech_files.sort(key=lambda x: os.path.getctime(x))
+                return
             with open(script_path, encoding='utf-8') as f:
-                for sentence in f.readlines():
+                sentences = f.readlines()
+                bar = tqdm(total=len(sentences))
+                for sentence in sentences:
                     fname = asyncio.run(self.tts(sentence))
                     self.speech_files.append(fname)
+                    bar.update(1)
 
     def prepare_qa_datasource(self, qa_path: str):
         """
@@ -78,10 +92,11 @@ class DigitalHuman:
                 mixer.music.play(start=self.current_pos // 1000, fade_ms=500)
                 self.current_pos = 0
             else:
-                current_file = self.speech_files[0]
-                # 把第一个音频放到列表末尾
-                del self.speech_files[0]
-                self.speech_files.append(current_file)
+                current_file = random.choice(self.speech_files)
+                # current_file = self.speech_files[0]
+                # # 把第一个音频放到列表末尾
+                # del self.speech_files[0]
+                # self.speech_files.append(current_file)
                 mixer.music.load(current_file)
                 mixer.music.play()
 
@@ -115,8 +130,8 @@ class DigitalHuman:
         return response, history
 
     @staticmethod
-    async def tts(message, voice="zh-CN-XiaoxiaoNeural"):
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as fp:
+    async def tts(message, voice="zh-CN-XiaoxiaoNeural", save_path="resources/speeches"):
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False, dir=save_path) as fp:
             voice = edge_tts.Communicate(text=message, voice=voice, rate='-4%', volume='+0%')
             await voice.save(fp.name)
             return fp.name
@@ -124,8 +139,8 @@ class DigitalHuman:
 
 if __name__ == '__main__':
     mixer.init()
-    digital_human = DigitalHuman(ChatGLM(), 'little-prince')
-    digital_human.prepare_qa_datasource('chroma_datasource/lawzhidao_filter.csv')
+    digital_human = DigitalHuman(ChatGLM(), 'resources/scripts.txt')
+    digital_human.prepare_qa_datasource('resources/qa.csv')
     while True:
         question = input("人：")
         resp, _ = digital_human.reply(question, [], distance_threshold=0.1)
