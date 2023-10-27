@@ -4,6 +4,15 @@ from functools import partial
 
 
 class BaseFilter:
+    def _clean(self, text):
+        raise NotImplementedError()
+
+    def clean(self, texts):
+        cleaned_comments = list(map(partial(self._clean), texts))
+        return [x for x in cleaned_comments if x is not None]
+
+
+class BasicFilter(BaseFilter):
     def __init__(
             self,
             comment_regex=r'$.*$',
@@ -38,15 +47,11 @@ class BaseFilter:
                 return None
         return comment
 
-    def clean(self, comments):
-        cleaned_comments = list(map(partial(self._clean), comments))
-        return [x for x in cleaned_comments if x is not None]
-
 
 class DouyinFilter(BaseFilter):
     pass
 
 
 if __name__ == '__main__':
-    fn = BaseFilter(r'.*', min_len=1, exclude_sentences=['不好'])
+    fn = BasicFilter(r'.*', min_len=1, exclude_sentences=['不好'])
     print(fn.clean(['你好', '你不好']))
