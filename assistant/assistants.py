@@ -1,13 +1,14 @@
 import time
 import random
 import pythoncom
+from queue import Queue
 from typing import List
 from threading import Thread
 
 import wmi
 import pytesseract
 from PIL import ImageGrab
-
+from selenium.webdriver.common.by import By
 from pynput import keyboard
 
 
@@ -70,13 +71,24 @@ class Supervisor(BaseAssistant):
 
 
 class CustomAssistant(BaseAssistant):
-    def __init__(self, driver, comment_queue):
+    def __init__(self, driver, comments: List, comment_queue: Queue, timestep=10):
         super().__init__()
         self.driver = driver
+        self.comments = comments
         self.comment_queue = comment_queue
+        self.timestep = timestep
 
     def func(self):
-        pass
+        while True:
+            if len(self.comments) > 0:
+                comment = random.choice(self.comments)
+                textarea = self.driver.find_element(By.XPATH, '//textarea[@class="webcast-chatroom___textarea"]')
+                textarea.click()
+                textarea.send_keys(comment)
+                send_btn = self.driver.find_element(By.XPATH, '//button[@class="webcast-chatroom___send-btn"]')
+                send_btn.click()
+                self.comment_queue.put(comment)
+            time.sleep(self.timestep)
 
 
 if __name__ == '__main__':

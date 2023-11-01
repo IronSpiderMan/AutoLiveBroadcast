@@ -38,7 +38,9 @@ class BasicFilter(BaseFilter):
         self.comment_regex = comment_regex
         self.min_len = min_len
         self.max_len = max_len
-        if not isinstance(stop_words, list):
+        if not stop_words:
+            self.stop_words = []
+        elif not isinstance(stop_words, list):
             with open(stop_words, encoding='utf-8') as f:
                 self.stop_words = f.readlines()
         else:

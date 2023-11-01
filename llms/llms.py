@@ -22,3 +22,8 @@ class ChatGLM(BaseLLM):
             headers=headers
         ).json()
         return resp['response'], resp['history']
+
+
+class NotLLM(BaseLLM):
+    def chat(self, message, history):
+        pass

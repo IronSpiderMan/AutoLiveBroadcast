@@ -1,0 +1,10 @@
+{
+  "llm": {},
+  "digital_human": {
+    "name": "ChatGLM2-6B"
+  },
+  "live_stream": {
+    "platform": "douyin",
+    "room_id": ""
+  }
+}
