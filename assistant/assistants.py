@@ -55,7 +55,6 @@ class Supervisor(BaseAssistant):
             # 识别文字
             string = pytesseract.image_to_string(im, lang='chi_sim')
             string = "".join(string.split())
-            print(string)
             if string.__contains__("违规处罚") or string.__contains__("直播已中断") or string.__contains__(
                     "直播已结束"):
                 pythoncom.CoInitialize()
@@ -80,15 +79,18 @@ class CustomAssistant(BaseAssistant):
 
     def func(self):
         while True:
-            if len(self.comments) > 0:
-                comment = random.choice(self.comments)
-                textarea = self.driver.find_element(By.XPATH, '//textarea[@class="webcast-chatroom___textarea"]')
-                textarea.click()
-                textarea.send_keys(comment)
-                send_btn = self.driver.find_element(By.XPATH, '//button[@class="webcast-chatroom___send-btn"]')
-                send_btn.click()
-                self.comment_queue.put(comment)
             time.sleep(self.timestep)
+            if len(self.comments) > 0:
+                try:
+                    comment = random.choice(self.comments)
+                    textarea = self.driver.find_element(By.XPATH, '//textarea[@class="webcast-chatroom___textarea"]')
+                    textarea.click()
+                    textarea.send_keys(comment)
+                    send_btn = self.driver.find_element(By.XPATH, '//button[@class="webcast-chatroom___send-btn"]')
+                    send_btn.click()
+                    self.comment_queue.put((None, comment, None))
+                except Exception:
+                    pass
 
 
 if __name__ == '__main__':

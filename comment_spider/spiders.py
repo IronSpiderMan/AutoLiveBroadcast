@@ -1,3 +1,4 @@
+import os.path
 import random
 import time
 from queue import Queue
@@ -8,7 +9,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import sqlite3
 
-from comment_spider.filters import BaseFilter
+from comment_spider.filters import BaseFilter, BasicFilter
 
 
 class BaseLiveStreamSpider:
@@ -36,6 +37,8 @@ class BaseLiveStreamSpider:
         self.driver = self.connect_browser()
 
     def init_db(self):
+        if not os.path.exists(os.path.dirname(self.persist_path)):
+            os.makedirs(os.path.dirname(self.persist_path))
         connection = sqlite3.connect(self.persist_path, check_same_thread=False)
         cursor = connection.cursor()
         try:
@@ -56,6 +59,8 @@ class BaseLiveStreamSpider:
         raise NotImplementedError("请实现crawl_comments方法")
 
     def filter_comments(self, comments):
+        if not self.filter:
+            return comments
         return self.filter.clean(comments)
 
     def run(self):
@@ -71,31 +76,36 @@ class BilibiliLiveStreamSpider(BaseLiveStreamSpider):
     def __init__(self, room_id: int | str, comments_queue: Queue, persist_path=".",
                  remote_port=9222, filter=None):
         super().__init__(room_id, 'https://live.bilibili.com/', comments_queue, persist_path, remote_port, filter)
+        self.name_ids = []
 
     def crawl_comments(self):
         container = self.driver.find_element(by=By.XPATH, value='//div[@id="chat-items"]')
-        comments = container.find_elements(by=By.XPATH, value='.//div[contains(@class, "chat-item")]')
-        if len(comments) <= len(self.comments_list):
+        chat_items = container.find_elements(by=By.XPATH, value='.//div[contains(@class, "chat-item")]')
+        # 过滤已有评论
+        new_comments = [item for item in chat_items if item.id not in self.name_ids]
+        self.name_ids.extend([item.id for item in new_comments])
+        if len(new_comments) == 0:
             return
-        for comment in comments:
-            try:
-                nickname = comment.find_element(
-                    by=By.XPATH,
-                    value='.//span[contains(@class, "user-name")]'
-                ).text.strip().split()[0]
-                content = comment.find_element(
-                    by=By.XPATH,
-                    value='.//span[contains(@class, "danmaku-item-right")]'
-                ).text.strip()
-                if (nickname, content) not in self.comments_list:
-                    self.comments_queue.put((nickname, content))
-                    self.cursor.execute(
-                        "insert into comment_spider values (?, ?)",
-                        (nickname, content,)
-                    )
-                    self.connection.commit()
-            except Exception as e:
-                pass
+        # for nickname, content in zip(names, contents):
+        for item in chat_items:
+            nickname = item.get_attribute('data-uname').strip()
+            content = item.get_attribute('data-danmaku').strip()
+            # nickname = nickname.text.strip()
+            # content = content.text.strip()
+            # 过滤评论内容
+            content = self.filter_comments([content])
+            if content:
+                content = content[0]
+            else:
+                return
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            print("%s 来了新评论：%s" % (nickname, content))
+            self.comments_queue.put((nickname, content, dt))
+            self.cursor.execute(
+                "insert into comment_spider values (?, ?, ?)",
+                (nickname, content, dt)
+            )
+            self.connection.commit()
 
 
 class DouyinLiveStreamSpider(BaseLiveStreamSpider):
@@ -138,12 +148,58 @@ class DouyinLiveStreamSpider(BaseLiveStreamSpider):
             self.connection.commit()
 
 
+class MeituanSpider(BaseLiveStreamSpider):
+    def __init__(self, room_id: int | str, comments_queue: Queue, persist_path=".",
+                 remote_port=9222, filter=None):
+        super().__init__(room_id, 'https://live.douyin.com/', comments_queue, persist_path, remote_port, filter)
+        self.name_ids = []
+        self.room_url = "https://live.meituan.com/#/"
+
+    def crawl_comments(self):
+        names = self.driver.find_elements(by=By.XPATH,
+                                          value='//div[@class="list-item"]//span[contains(@class, "user-name")]')
+        contents = self.driver.find_elements(by=By.XPATH, value='//div[@class="list-item"]//span[@class="content"]')
+        # 过滤已有评论
+        new_comments = list(zip(
+            *[[name, content] for name, content in zip(names, contents) if name.id not in self.name_ids]))
+        if new_comments:
+            names, contents = new_comments
+        else:
+            names, contents = [], []
+        self.name_ids.extend([name.id for name in names])
+        if len(names) == 0:
+            return
+        for nickname, content in zip(names, contents):
+            nickname = nickname.text
+            content = content.text
+            print(nickname, content)
+            # 过滤评论内容
+            content = self.filter_comments([content])
+            if content:
+                content = content[0]
+            else:
+                continue
+            dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.comments_queue.put((nickname, content, dt))
+            self.cursor.execute(
+                "insert into comment_spider values (?, ?, ?)",
+                (nickname, content, dt)
+            )
+            self.connection.commit()
+
+    def run(self):
+        print("直播间地址：", self.room_url)
+        self.driver.get(self.room_url)
+        time.sleep(3)
+        while True:
+            self.crawl_comments()
+
+
 if __name__ == '__main__':
     exclude_sentences = [
         '来了',
         '送出了'
     ]
     q = Queue()
-    douyin_filter = BaseFilter(exclude_sentences=[])
-    spider = DouyinLiveStreamSpider('78480182181', q)
+    spider = MeituanSpider('30857154', q, filter=None)
     spider.run()

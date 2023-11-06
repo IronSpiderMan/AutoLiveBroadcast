@@ -20,7 +20,7 @@ class BaseFilter:
 class BasicFilter(BaseFilter):
     def __init__(
             self,
-            comment_regex=r'$.*$',
+            comment_regex=r'.*?',
             min_len=5,
             max_len=30,
             stop_words=None,

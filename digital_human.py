@@ -8,7 +8,7 @@ from pygame import mixer
 from tqdm import tqdm
 import edge_tts
 import tempfile
-from llms.llms import BaseLLM, ChatGLM
+from llms.llms import BaseLLM, ChatGLM, NotLLM
 from chroma_datasource.document import ChromaDocuments
 from chroma_datasource.chroma_utils import ChromaDatasource
 
@@ -25,7 +25,8 @@ class DigitalHuman:
             persis_path='vector_store',
             embedding_model_name="shibing624/text2vec-base-chinese",
             qa_collection_name="qa_pairs",
-            speech_path="resources/speeches"
+            speech_path="resources/speeches",
+            path_type="script",
     ):
         self.llm = llm
         self.speech_files = []
@@ -33,7 +34,7 @@ class DigitalHuman:
         self.current_pos = 0
         self.qa_collection_name = qa_collection_name
         self.speech_path = speech_path
-        self.prepare_speeches(script_path)
+        self.prepare_speeches(script_path, path_type)
         self.current_file = self.speech_files[0]
         self.qa_datasource = ChromaDatasource(persis_path, embedding_model_name)
 
@@ -117,7 +118,9 @@ class DigitalHuman:
         else:
             prompt = f'请简短地回答："{message}"'
             response, history = self.llm.chat(prompt, history)
-        fname = asyncio.run(self.tts(response))
+        if not response:
+            return response, history
+        fname = asyncio.run(self.tts(response, save_path='tmp'))
         while mixer.music.get_busy() and self.answering_flag:
             time.sleep(0.5)
             continue
@@ -139,9 +142,11 @@ class DigitalHuman:
 
 if __name__ == '__main__':
     mixer.init()
-    digital_human = DigitalHuman(ChatGLM(), 'resources/scripts.txt')
+    # digital_human = DigitalHuman(NotLLM(), 'resources/scripts.txt')
+    digital_human = DigitalHuman(NotLLM(), 'resources/speeches', path_type='audio')
     digital_human.prepare_qa_datasource('resources/qa.csv')
     while True:
-        question = input("人：")
-        resp, _ = digital_human.reply(question, [], distance_threshold=0.1)
-        print(resp)
+        digital_human.talk()
+        # question = input("人：")
+        # resp, _ = digital_human.reply(question, [], distance_threshold=0.1)
+        # print(resp)

@@ -26,4 +26,4 @@ class ChatGLM(BaseLLM):
 
 class NotLLM(BaseLLM):
     def chat(self, message, history):
-        pass
+        return None, []

@@ -1,10 +1,22 @@
 {
-  "llm": {},
   "digital_human": {
-    "name": "ChatGLM2-6B"
+    "llm": "NotLLM"
   },
   "live_stream": {
-    "platform": "douyin",
-    "room_id": ""
+    "platform": "meituan",
+    "room_id": "0000"
+  },
+  "chroma": {
+    "qa_collection_name": "qa_pair",
+    "embedding_model_name": "shibing624/text2vec-base-chinese"
+  },
+  "resources": {
+    "qa_path": "resources/qa.csv",
+    "comment_persist": "resources/sqlite",
+    "qa_persist": "resources/qa_vector_store",
+    "stop_words": "resources/stop_words.txt",
+    "excluded_sentences": "resources/excluded_sentences.txt",
+    "speeches_path": "resources/speeches",
+    "script_path": "resources/scripts.txt"
   }
 }
